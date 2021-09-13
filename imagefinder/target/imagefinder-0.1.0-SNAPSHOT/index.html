@@ -1,0 +1,171 @@
+<html>
+<head>
+<style>
+*{
+  box-sizing: border-box;
+}
+body{
+  margin: 0px;
+  padding: 0px;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: #c5dafc;
+  font-family: "Lucida Console";
+
+}
+.content{
+  margin: 0px;
+  padding: 0px;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: #c5dafc;
+}
+.button {
+  transition-duration: 0.4s;
+  border-radius:25px;
+  width:100px;
+  height:50px;
+  font-family: "Lucida Console";
+}
+.button:hover {
+  background-color: #2176ff;
+  color: white;
+}
+.search{
+    border-radius:25px;
+    width:300px;
+    height:50px;
+}
+.slidecontainer {
+  width: 400px;
+}
+
+.slider {
+  width: 100%;
+  height: 25px;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+}
+
+.input{
+  background-color: #eae8ff;
+  top: 10px;
+  padding: 20px;
+  border-radius: 25px;
+  box-shadow: 0px 5px 5px #888888;
+  position: relative;
+}
+
+.output{
+  background-color: #eae8ff;
+  overflow: auto;
+  top: 30px;
+  padding: 20px;
+  border-radius: 25px;
+  box-shadow: 0px 5px 5px #888888;
+  position: relative;
+  visibility: hidden;
+}
+</style>
+</head>
+<body>
+	<div class="content">
+		<div class="input">
+            <center><h2>Web Crawler</h2></center>
+			<input type="text" name="url" placeholder="Enter URL here..." class="search">
+			<button type="button" class="button">Search</button>
+            <div class="slidecontainer">
+  				<input type="range" min="0" max="3" value="1" class="slider" id="rangeSlider">
+			</div>
+			<div> Depth: <span id="depth"></div></p>
+			<input type="checkbox" id="download"> Download?
+		</div>
+		
+		<div class="output" id="outputList">
+			<ul class="results">
+
+			</ul>
+		</div>
+	
+	</div>
+	<script src="FileSaver.js"></script>
+	<script src="Blob.js"></script>
+	<script>
+        var slider = document.getElementById("rangeSlider");
+        var output = document.getElementById("depth");   
+		var resultList = document.querySelector('ul.results');
+		var urlInput = document.querySelector('input[name=url]');
+        
+        output.innerHTML = slider.value;
+		slider.oninput = function() {
+          output.innerHTML = this.value;
+        }
+		
+        apiCallBack = function(xhr, callback) {
+			if (xhr.readyState == XMLHttpRequest.DONE) {
+				if (xhr.status != 200) {
+					let message = xhr.status + ":" + xhr.statusText + ":"
+							+ xhr.responseText;
+					alert(message);
+					throw 'API call returned bad code: ' + xhr.status;
+				}
+				let response = xhr.response;
+				console.log(response);
+				if (callback) {
+					callback(response);
+				}
+			}
+		}
+
+		updateList = function(response) {
+			var download = document.getElementById("download").checked;
+			if(download){
+				alert('Downloading zip file...');
+				var blob = new Blob([response], {type: "application/zip"});
+		        var fileName = "download.zip";
+		        saveAs(blob, fileName);
+			}
+			else{
+				response = JSON.parse(response);
+				var outputList = document.getElementById("outputList");
+				outputList.style.visibility = 'hidden';
+				outputList.style.visibility = 'visible';
+				resultList.innerHTML = '';
+				for (var i = 0; i < response.length; i++) {
+					var img = document.createElement("img");
+					img.width = 200;
+					img.src = response[i];
+					resultList.appendChild(img);
+				}
+			}
+		}
+
+		makeApiCall = function(url, method, obj, callback) {
+			var download = document.getElementById("download").checked;
+			let xhr = new XMLHttpRequest();
+			xhr.open(method, url);
+			xhr.onreadystatechange = apiCallBack.bind(null, xhr, callback);
+			if(download){
+				xhr.responseType="arraybuffer";
+				xhr.send(obj);
+			}
+			else xhr.send(obj ? obj instanceof FormData || obj.constructor == String ? obj : JSON.stringify(obj) : null);
+		}
+
+		document.querySelector('button').addEventListener("click", function(event) {
+			var download = document.getElementById("download").checked;
+			event.preventDefault();
+			makeApiCall('/main?url=' + urlInput.value + '&depth=' + output.innerHTML + '&download=' + download, 'POST', null, updateList);
+		});
+	</script>
+</body>
+
+</html>
